@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Editor } from 'slate-react';
+import { Value } from 'slate';
 // import Mitt from 'mitt';
 import { initialValue } from './slateInitialValue';
 import io from 'socket.io-client';
@@ -16,6 +17,13 @@ function SyncingEditor() {
     const remote = useRef(false)
 
     useEffect(() => {
+
+        socket.once('init-value', (value) => {
+            //console.log('getting here');
+            setValue(Value.fromJSON(value));
+        });
+
+        socket.emit('send-value');
 
         socket.on('new-remote-operations', ({editorId, ops}) => {
             if (id.current !== editorId) {
@@ -35,6 +43,10 @@ function SyncingEditor() {
             }
             
         }); */
+
+        return () => {
+            socket.off('new-remote-operations');
+        }
     }, []);
     
     return (
@@ -69,7 +81,11 @@ function SyncingEditor() {
 
             if (ops.length & !remote.current) {
                 // emitter.emit(id.current, ops);
-                socket.emit('new-operations', {editorId: id.current, ops: ops});
+                socket.emit('new-operations', {
+                    editorId: id.current, 
+                    ops: ops,
+                    value: val.value.toJSON()
+                });
             }
         }} 
         />
