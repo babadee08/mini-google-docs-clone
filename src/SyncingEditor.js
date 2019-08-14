@@ -1,9 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Editor } from 'slate-react';
-import Mitt from 'mitt';
+// import Mitt from 'mitt';
 import { initialValue } from './slateInitialValue';
+import io from 'socket.io-client';
 
-const emitter = new Mitt();
+const socket = io('http://localhost:4000');
+// const emitter = new Mitt();
 
 
 function SyncingEditor() {
@@ -14,7 +16,17 @@ function SyncingEditor() {
     const remote = useRef(false)
 
     useEffect(() => {
-        emitter.on('*', (type, ops) => {
+
+        socket.on('new-remote-operations', ({editorId, ops}) => {
+            if (id.current !== editorId) {
+                // console.log('change happened in other editor');
+                remote.current = true
+                ops.forEach(op => editor.current.applyOperation(op));
+                remote.current = false;
+            }
+        });
+
+        /* emitter.on('*', (type, ops) => {
             if (id.current !== type) {
                 // console.log('change happened in other editor');
                 remote.current = true
@@ -22,7 +34,7 @@ function SyncingEditor() {
                 remote.current = false;
             }
             
-        });
+        }); */
     }, []);
     
     return (
@@ -56,7 +68,8 @@ function SyncingEditor() {
                 .map(o => ({ ...o, data: { source: 'one' } }));
 
             if (ops.length & !remote.current) {
-                emitter.emit(id.current, ops);
+                // emitter.emit(id.current, ops);
+                socket.emit('new-operations', {editorId: id.current, ops: ops});
             }
         }} 
         />
