@@ -9,7 +9,7 @@ const socket = io('http://localhost:4000');
 // const emitter = new Mitt();
 
 
-function SyncingEditor() {
+function SyncingEditor({groupId}) {
 
     const [value, setValue] = useState(initialValue);
     const editor  = useRef(null);
@@ -18,14 +18,21 @@ function SyncingEditor() {
 
     useEffect(() => {
 
-        socket.once('init-value', (value) => {
+        /* socket.once('init-value', (value) => {
             //console.log('getting here');
             setValue(Value.fromJSON(value));
         });
 
-        socket.emit('send-value');
+        socket.emit('send-value'); */
 
-        socket.on('new-remote-operations', ({editorId, ops}) => {
+        fetch(`http://localhost:4000/groups/${groupId}`).then(x => x.json().then(data => {
+            // console.log(data);
+            setValue(Value.fromJSON(data));
+        }));
+
+        const eventName = `new-remote-operations-${groupId}`
+
+        socket.on(eventName, ({editorId, ops}) => {
             if (id.current !== editorId) {
                 // console.log('change happened in other editor');
                 remote.current = true
@@ -45,7 +52,7 @@ function SyncingEditor() {
         }); */
 
         return () => {
-            socket.off('new-remote-operations');
+            socket.off(eventName);
         }
     }, []);
     
@@ -84,7 +91,8 @@ function SyncingEditor() {
                 socket.emit('new-operations', {
                     editorId: id.current, 
                     ops: ops,
-                    value: val.value.toJSON()
+                    value: val.value.toJSON(),
+                    groupId
                 });
             }
         }} 
